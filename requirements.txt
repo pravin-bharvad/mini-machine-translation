@@ -1,0 +1,4 @@
+flask>=2.3.0
+nltk>=3.8.1
+# indic-nlp-library — install via: pip install indic-nlp-library
+# inltk — install via: pip install inltk
