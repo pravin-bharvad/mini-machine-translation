@@ -1,9 +1,3 @@
-"""
-Flask Web Application — Mini Machine Translation Demo
-Subject: Computational Linguistics for Indian Languages
-Silver Oak University | Semester 4
-"""
-
 from flask import Flask, render_template, request, jsonify
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
