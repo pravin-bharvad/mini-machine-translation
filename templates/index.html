@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mini Machine Translation — CLIL Project</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --accent: #f59e0b;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --green: #16a34a;
+      --red: #dc2626;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      color: white; padding: 1.5rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header span { font-size: 0.85rem; opacity: 0.8; }
+
+    .badge {
+      background: var(--accent); color: #1c1917;
+      font-size: 0.7rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px; margin-left: 10px;
+    }
+
+    main { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+
+    .lang-bar {
+      display: flex; align-items: center; gap: 1rem;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem; flex-wrap: wrap;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .lang-bar label { font-weight: 600; font-size: 0.9rem; }
+    .lang-bar select {
+      padding: 0.45rem 1rem; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.95rem; background: white;
+      cursor: pointer; outline: none;
+    }
+    .swap-btn {
+      background: var(--primary); color: white; border: none;
+      border-radius: 8px; padding: 0.45rem 1rem;
+      cursor: pointer; font-size: 1rem; transition: background 0.2s;
+    }
+    .swap-btn:hover { background: var(--primary-dark); }
+
+    .panels {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;
+    }
+    @media (max-width: 700px) { .panels { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .panel-header {
+      background: #f8fafc; border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.2rem; font-weight: 700; font-size: 0.9rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    textarea {
+      width: 100%; height: 160px; border: none; resize: vertical;
+      padding: 1rem 1.2rem; font-size: 1rem; line-height: 1.6;
+      font-family: inherit; color: var(--text); outline: none;
+    }
+    #output-box {
+      min-height: 160px; padding: 1rem 1.2rem;
+      font-size: 1.1rem; line-height: 1.8; color: #1e3a8a;
+      font-weight: 500;
+    }
+    .char-count { font-size: 0.75rem; color: var(--muted); }
+
+    .translate-btn {
+      width: 100%; padding: 0.9rem;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white; border: none; border-radius: 10px;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      margin-top: 1rem; letter-spacing: 0.5px;
+      transition: opacity 0.2s; box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+    }
+    .translate-btn:hover { opacity: 0.92; }
+    .translate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* NLP Pipeline Accordion */
+    .pipeline-section { margin-top: 1.5rem; }
+    .pipeline-section h2 {
+      font-size: 1rem; font-weight: 700; margin-bottom: 0.8rem;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+    }
+    .pipeline-steps { display: flex; flex-direction: column; gap: 0.8rem; }
+
+    .step {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+    }
+    .step-header {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem 1rem; cursor: pointer;
+      user-select: none; font-weight: 600;
+    }
+    .step-header:hover { background: #f8fafc; }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 800; flex-shrink: 0;
+    }
+    .step-body { padding: 0 1rem 0.8rem 1rem; display: none; }
+    .step-body.open { display: block; }
+    .token-list {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+    }
+    .token {
+      background: #eff6ff; color: #1d4ed8;
+      border: 1px solid #bfdbfe; border-radius: 6px;
+      padding: 3px 10px; font-size: 0.82rem; font-weight: 600;
+    }
+    .token.removed { background: #fef2f2; color: #dc2626; border-color: #fecaca; text-decoration: line-through; }
+    .token.translated { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+
+    .stats-bar {
+      display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;
+    }
+    .stat {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.6rem 1rem; text-align: center; flex: 1;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .stat-val { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+    .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; }
+
+    .error-msg {
+      background: #fef2f2; border: 1px solid #fecaca;
+      color: #dc2626; border-radius: 8px; padding: 0.75rem 1rem;
+      margin-top: 0.8rem; font-size: 0.9rem;
+    }
+    .spinner { display: none; text-align: center; padding: 2rem; color: var(--muted); }
+
+    footer {
+      text-align: center; padding: 2rem; color: var(--muted);
+      font-size: 0.82rem; margin-top: 2rem;
+    }
+
+    /* Chevron */
+    .chev { margin-left: auto; transition: transform 0.2s; }
+    .chev.open { transform: rotate(180deg); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🌐 Mini Machine Translation System <span class="badge">CLIL Project</span></h1>
+    <span>Silver Oak University &nbsp;|&nbsp; Computational Linguistics for Indian Languages &nbsp;|&nbsp; Semester 4</span>
+  </div>
+</header>
+
+<main>
+  <!-- Language Selector -->
+  <div class="lang-bar">
+    <label>Source:</label>
+    <select id="source-lang">
+      <option value="english">English</option>
+      <option value="hindi">Hindi (हिन्दी)</option>
+      <option value="gujarati">Gujarati (ગુજરાતી)</option>
+    </select>
+    <button class="swap-btn" onclick="swapLangs()" title="Swap languages">⇄ Swap</button>
+    <label>Target:</label>
+    <select id="target-lang">
+      <option value="hindi">Hindi (हिन्दी)</option>
+      <option value="gujarati">Gujarati (ગુજરાતી)</option>
+      <option value="english">English</option>
+    </select>
+  </div>
+
+  <!-- Translation Panels -->
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-header">
+        <span>📝 Input Text</span>
+        <span class="char-count" id="char-count">0 chars</span>
+      </div>
+      <textarea id="input-text" placeholder="Type or paste your text here…" oninput="updateCount()"></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span>🌏 Translated Output</span>
+        <span id="script-badge" style="font-size:0.75rem;color:var(--muted)"></span>
+      </div>
+      <div id="output-box"><span style="color:var(--muted);font-weight:400">Translation will appear here…</span></div>
+    </div>
+  </div>
+
+  <button class="translate-btn" id="trans-btn" onclick="doTranslate()">🔄 Translate</button>
+  <div class="spinner" id="spinner">⏳ Processing NLP pipeline…</div>
+  <div id="error-area"></div>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="stats-bar" style="display:none">
+    <div class="stat"><div class="stat-val" id="s-tokens">—</div><div class="stat-label">Tokens</div></div>
+    <div class="stat"><div class="stat-val" id="s-filtered">—</div><div class="stat-label">After Stopword Removal</div></div>
+    <div class="stat"><div class="stat-val" id="s-oov">—</div><div class="stat-label">OOV Words</div></div>
+    <div class="stat"><div class="stat-val" id="s-coverage">—</div><div class="stat-label">Coverage %</div></div>
+  </div>
+
+  <!-- NLP Pipeline Steps -->
+  <div class="pipeline-section" id="pipeline-section" style="display:none">
+    <h2>🔬 NLP Pipeline — Step-by-Step</h2>
+    <div class="pipeline-steps">
+
+      <div class="step" id="step1">
+        <div class="step-header" onclick="toggleStep('step1')">
+          <div class="step-num" style="background:#dbeafe;color:#1d4ed8">1</div>
+          <span>Unicode Normalization (NFC)</span>
+          <span class="chev" id="chev-step1">▼</span>
+        </div>
+        <div class="step-body" id="body-step1">
+          <div id="normalized-text" style="font-family:monospace;font-size:0.9rem;background:#f8fafc;padding:8px 12px;border-radius:6px;"></div>
+        </div>
+      </div>
+
+      <div class="step" id="step2">
+        <div class="step-header" onclick="toggleStep('step2')">
+          <div class="step-num" style="background:#ede9fe;color:#7c3aed">2</div>
+          <span>Tokenization</span>
+          <span class="chev" id="chev-step2">▼</span>
+        </div>
+        <div class="step-body" id="body-step2">
+          <div class="token-list" id="token-list"></div>
+        </div>
+      </div>
+
+      <div class="step" id="step3">
+        <div class="step-header" onclick="toggleStep('step3')">
+          <div class="step-num" style="background:#fef3c7;color:#d97706">3</div>
+          <span>Stopword Removal</span>
+          <span class="chev" id="chev-step3">▼</span>
+        </div>
+        <div class="step-body" id="body-step3">
+          <div class="token-list" id="filtered-list"></div>
+        </div>
+      </div>
+
+      <div class="step" id="step4">
+        <div class="step-header" onclick="toggleStep('step4')">
+          <div class="step-num" style="background:#dcfce7;color:#16a34a">4</div>
+          <span>Dictionary-Based Translation</span>
+          <span class="chev" id="chev-step4">▼</span>
+        </div>
+        <div class="step-body" id="body-step4">
+          <div class="token-list" id="translated-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  Mini Machine Translation Demo &nbsp;|&nbsp; Silver Oak University &nbsp;|&nbsp;
+  Computational Linguistics for Indian Languages (CLIL) &nbsp;|&nbsp; Semester 4
+</footer>
+
+<script>
+function updateCount() {
+  const v = document.getElementById('input-text').value;
+  document.getElementById('char-count').textContent = v.length + ' chars';
+}
+
+function swapLangs() {
+  const s = document.getElementById('source-lang');
+  const t = document.getElementById('target-lang');
+  [s.value, t.value] = [t.value, s.value];
+}
+
+function toggleStep(id) {
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chev-' + id);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+function openStep(id) {
+  document.getElementById('body-' + id).classList.add('open');
+  document.getElementById('chev-' + id).classList.add('open');
+}
+
+async function doTranslate() {
+  const text = document.getElementById('input-text').value.trim();
+  const src  = document.getElementById('source-lang').value;
+  const tgt  = document.getElementById('target-lang').value;
+  const btn  = document.getElementById('trans-btn');
+  const errArea = document.getElementById('error-area');
+
+  errArea.innerHTML = '';
+  if (!text) { errArea.innerHTML = '<div class="error-msg">⚠️ Please enter some text first.</div>'; return; }
+  if (src === tgt) { errArea.innerHTML = '<div class="error-msg">⚠️ Source and target language must be different.</div>'; return; }
+
+  btn.disabled = true;
+  document.getElementById('spinner').style.display = 'block';
+  document.getElementById('pipeline-section').style.display = 'none';
+  document.getElementById('stats-bar').style.display = 'none';
+  document.getElementById('output-box').innerHTML = '<span style="color:var(--muted)">Translating…</span>';
+
+  try {
+    const res = await fetch('/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, source_lang: src, target_lang: tgt })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      errArea.innerHTML = `<div class="error-msg">⚠️ ${data.error}</div>`;
+    } else {
+      renderResult(data);
+    }
+  } catch(e) {
+    errArea.innerHTML = '<div class="error-msg">⚠️ Server error. Make sure the Flask app is running.</div>';
+  }
+
+  btn.disabled = false;
+  document.getElementById('spinner').style.display = 'none';
+}
+
+function renderResult(d) {
+  // Output
+  document.getElementById('output-box').textContent = d.translated_text || '(no translation)';
+  document.getElementById('script-badge').textContent = '📜 Script: ' + d.script_detected;
+
+  // Stats
+  document.getElementById('s-tokens').textContent   = d.tokens.length;
+  document.getElementById('s-filtered').textContent = d.tokens_no_stopwords.length;
+  document.getElementById('s-oov').textContent       = d.oov_count;
+  document.getElementById('s-coverage').textContent  = d.coverage + '%';
+  document.getElementById('stats-bar').style.display = 'flex';
+
+  // Step 1 – Normalized
+  document.getElementById('normalized-text').textContent = d.normalized_text;
+  openStep('step1');
+
+  // Step 2 – Tokens
+  const tokList = document.getElementById('token-list');
+  tokList.innerHTML = d.tokens.map(t => `<span class="token">${t}</span>`).join('');
+  openStep('step2');
+
+  // Step 3 – Filtered (mark removed ones)
+  const filtSet = new Set(d.tokens_no_stopwords);
+  const filtList = document.getElementById('filtered-list');
+  filtList.innerHTML = d.tokens.map(t =>
+    filtSet.has(t)
+      ? `<span class="token">${t}</span>`
+      : `<span class="token removed">${t}</span>`
+  ).join('');
+  openStep('step3');
+
+  // Step 4 – Translation pairs
+  const transList = document.getElementById('translated-list');
+  const pairs = d.tokens_no_stopwords.map((t, i) => {
+    const translated = (d.translated_text || '').split(' ')[i] || '[?]';
+    return `<span class="token translated" title="${t}">${translated}</span>`;
+  });
+  transList.innerHTML = pairs.join('');
+  openStep('step4');
+
+  document.getElementById('pipeline-section').style.display = 'block';
+}
+</script>
+
+</body>
+</html>
